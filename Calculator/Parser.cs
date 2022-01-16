@@ -40,10 +40,11 @@ public class Parser
         }
 
         var (expression, remainingTokens) = parsedResult.Value;
-        /*if (remainingTokens.First() is not EndOfInputToken)
+        remainingTokens = SkipWhitespace(remainingTokens);
+        if (remainingTokens.First() is not EndOfInputToken)
         {
             return Result<Expression<string>, ParserError>.OfError(new ParserError(null, "input left"));
-        }*/
+        }
 
         return Result<Expression<string>, ParserError>.Of(expression);
     }
@@ -106,6 +107,73 @@ public class Parser
     private Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>
         ParseMultiplicativeExpression(IEnumerable<Token> tokens)
     {
+        var leftResult = ParsePowerExpression(tokens);
+        if (leftResult.HasError)
+        {
+            return leftResult;
+        }
+
+        var leftExpression = leftResult.Value.expression;
+        tokens = leftResult.Value.remainingTokens;
+
+        tokens = SkipWhitespace(tokens);
+
+        var operatorToken = tokens.First() as OperatorToken;
+        var operatorKind = operatorToken?.Kind;
+
+        if (operatorKind == null)
+        {
+            return leftResult;
+        }
+
+        if (operatorKind != "*" && operatorKind != "/" && operatorKind != "or")
+        {
+            return leftResult;
+        }
+
+        tokens = tokens.Take(1..);
+        
+        tokens = SkipWhitespace(tokens);
+        
+        var rightResult = ParseMultiplicativeExpression(tokens);
+        if (rightResult.HasError)
+        {
+            return rightResult;
+        }
+
+        var rightExpression = rightResult.Value.expression;
+        tokens = rightResult.Value.remainingTokens;
+        
+        if (operatorKind == "or")
+        {
+            var additiveExpression = new BinaryExpression<object, object, object>(
+                leftExpression, rightExpression, Operations.OrOperation);
+            return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
+                (additiveExpression, tokens));
+        }
+
+        if (operatorKind == "*")
+        {
+            var additiveExpression = new BinaryExpression<object, object, object>(
+                leftExpression, rightExpression, Operations.MultiplicationOperation);
+            return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
+                (additiveExpression, tokens));
+        }
+        
+        if (operatorKind == "/")
+        {
+            var additiveExpression = new BinaryExpression<object, object, object>(
+                leftExpression, rightExpression, Operations.DivisionOperation);
+            return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
+                (additiveExpression, tokens));
+        }
+
+        throw new InvalidDataException();
+    }
+    
+    private Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>
+        ParsePowerExpression(IEnumerable<Token> tokens)
+    {
         var leftResult = ParseUnaryExpression(tokens);
         if (leftResult.HasError)
         {
@@ -125,7 +193,7 @@ public class Parser
             return leftResult;
         }
 
-        if (operatorKind != "*" && operatorKind != "/")
+        if (operatorKind != "^")
         {
             return leftResult;
         }
@@ -134,7 +202,7 @@ public class Parser
         
         tokens = SkipWhitespace(tokens);
         
-        var rightResult = ParseMultiplicativeExpression(tokens);
+        var rightResult = ParsePowerExpression(tokens);
         if (rightResult.HasError)
         {
             return rightResult;
@@ -142,19 +210,11 @@ public class Parser
 
         var rightExpression = rightResult.Value.expression;
         tokens = rightResult.Value.remainingTokens;
-
-        if (operatorKind == "*")
-        {
-            var additiveExpression = new BinaryExpression<object, object, object>(
-                leftExpression, rightExpression, Operations.MultiplicationOperation);
-            return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
-                (additiveExpression, tokens));
-        }
         
-        if (operatorKind == "/")
+        if (operatorKind == "^")
         {
             var additiveExpression = new BinaryExpression<object, object, object>(
-                leftExpression, rightExpression, Operations.DivisionOperation);
+                leftExpression, rightExpression, Operations.ExponentOperation);
             return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
                 (additiveExpression, tokens));
         }
@@ -191,6 +251,13 @@ public class Parser
         {
             var additiveExpression = new UnaryExpression<object ,object>(
                 inputExpression, Operations.NegationOperation);
+            return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
+                (additiveExpression, tokens));
+        }
+        else if (operatorKind == "not")
+        {
+            var additiveExpression = new UnaryExpression<object ,object>(
+                inputExpression, Operations.NotOperation);
             return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
                 (additiveExpression, tokens));
         }
@@ -278,7 +345,7 @@ public class Parser
             return leftResult;
         }
 
-        if (operatorKind != "+" && operatorKind != "-")
+        if (operatorKind != "+" && operatorKind != "-" && operatorKind != "and" && operatorKind != "xor")
         {
             return leftResult;
         }
@@ -300,6 +367,22 @@ public class Parser
         {
             var additiveExpression = new BinaryExpression<object, object, object>(
                 leftExpression, rightExpression, Operations.AdditionOperation);
+            return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
+                (additiveExpression, tokens));
+        }
+        
+        if (operatorKind == "and")
+        {
+            var additiveExpression = new BinaryExpression<object, object, object>(
+                leftExpression, rightExpression, Operations.AndOperation);
+            return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
+                (additiveExpression, tokens));
+        }
+        
+        if (operatorKind == "xor")
+        {
+            var additiveExpression = new BinaryExpression<object, object, object>(
+                leftExpression, rightExpression, Operations.XorOperation);
             return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
                 (additiveExpression, tokens));
         }

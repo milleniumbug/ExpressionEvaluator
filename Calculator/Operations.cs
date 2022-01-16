@@ -158,6 +158,50 @@ public static class Operations
         }
         return Result<object, EvaluationFailure>.OfError(new EvaluationFailure("one of the inputs to the operator '-' is not a number", null));
     }
+    
+    public static Result<object, EvaluationFailure> XorOperation(object left, object right)
+    {
+        {
+            if (left is int x && right is int y)
+            {
+                return Result<object, EvaluationFailure>.Of(x ^ y);
+            }
+        }
+        return Result<object, EvaluationFailure>.OfError(new EvaluationFailure("one of the inputs to the operator 'xor' is not an integral number", null));
+    }
+    
+    public static Result<object, EvaluationFailure> OrOperation(object left, object right)
+    {
+        {
+            if (left is int x && right is int y)
+            {
+                return Result<object, EvaluationFailure>.Of(x | y);
+            }
+        }
+        return Result<object, EvaluationFailure>.OfError(new EvaluationFailure("one of the inputs to the operator 'or' is not an integral number", null));
+    }
+    
+    public static Result<object, EvaluationFailure> AndOperation(object left, object right)
+    {
+        {
+            if (left is int x && right is int y)
+            {
+                return Result<object, EvaluationFailure>.Of(x & y);
+            }
+        }
+        return Result<object, EvaluationFailure>.OfError(new EvaluationFailure("one of the inputs to the operator 'and' is not an integral number", null));
+    }
+    
+    public static Result<object, EvaluationFailure> NotOperation(object arg)
+    {
+        {
+            if (arg is int x)
+            {
+                return Result<object, EvaluationFailure>.Of(~x);
+            }
+        }
+        return Result<object, EvaluationFailure>.OfError(new EvaluationFailure("one of the inputs to the operator 'not' is not an integral number", null));
+    }
 
     public static Result<object, EvaluationFailure> NegationOperation(object arg)
     {
@@ -375,5 +419,34 @@ public static class Operations
         }
 
         return Result<object, EvaluationFailure>.Of(1/tan);
+    }
+
+    public static Result<object, EvaluationFailure> ExponentOperation(object left, object right)
+    {
+        {
+            if (left is double x && right is double y)
+            {
+                return Result<object, EvaluationFailure>.Of(Math.Pow(x, y));
+            }
+        }
+        {
+            if (left is int x && right is double y)
+            {
+                return Result<object, EvaluationFailure>.Of(Math.Pow(x, y));
+            }
+        }
+        {
+            if (left is double x && right is int y)
+            {
+                return Result<object, EvaluationFailure>.Of(Math.Pow(x, y));
+            }
+        }
+        {
+            if (left is int x && right is int y)
+            {
+                return Result<object, EvaluationFailure>.Of((int)Math.Pow(x, y));
+            }
+        }
+        return Result<object, EvaluationFailure>.OfError(new EvaluationFailure("one of the inputs to the operator '^' is not a number", null));
     }
 }
