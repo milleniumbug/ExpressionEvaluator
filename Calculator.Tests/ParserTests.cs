@@ -43,6 +43,7 @@ public class ParserTests
     [InlineData("cos 0", "1")]
     [InlineData("10^4*2+1", "20001")]
     [InlineData("(10^4)*2+1", "20001")]
+    [InlineData("0b00010 or 0b11011", "27")]
     public void Success(string expression, string expectedEvaluationResult)
     {
         var evaluationContext = new EvaluationContext();
