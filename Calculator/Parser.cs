@@ -67,6 +67,34 @@ public class Parser
     private Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError> ParseExpression(IEnumerable<Token> tokens)
     {
         tokens = SkipWhitespace(tokens);
+        return ParseAssignmentExpression(tokens);
+    }
+
+    private Result<(Expression<object> expression, IEnumerable<Token> remainingTokens),ParserError>
+        ParseAssignmentExpression(IEnumerable<Token> tokens)
+    {
+        if (tokens.First() is Identifier id)
+        {
+            var assignmentRemainingTokens = tokens.Take(1..);
+            assignmentRemainingTokens = SkipWhitespace(assignmentRemainingTokens);
+            if (assignmentRemainingTokens.First() is OperatorToken operatorToken && operatorToken.Kind == "<-")
+            {
+                assignmentRemainingTokens = tokens.Take(1..);
+                assignmentRemainingTokens = SkipWhitespace(assignmentRemainingTokens);
+                var result = ParseAdditiveExpression(assignmentRemainingTokens);
+                if (result.HasError)
+                {
+                    return result;
+                }
+
+                var expression = result.Value.expression;
+                tokens = result.Value.remainingTokens;
+                
+                return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
+                    (new SetVariableExpression<object>(id.Name, expression), tokens));
+            }
+        }
+
         return ParseAdditiveExpression(tokens);
     }
 
@@ -142,7 +170,7 @@ public class Parser
         
         if (operatorKind == null)
         {
-            return ParseLiteralExpression(tokens);
+            return ParsePossiblyParenthesisedExpression(tokens);
         }
 
         tokens = tokens.Take(1..);
@@ -150,7 +178,7 @@ public class Parser
         tokens = SkipWhitespace(tokens);
         
         
-        var inputResult = ParseLiteralExpression(tokens);
+        var inputResult = ParsePossiblyParenthesisedExpression(tokens);
         if (inputResult.HasError)
         {
             return inputResult;
@@ -159,11 +187,6 @@ public class Parser
         var inputExpression = inputResult.Value.expression;
         tokens = inputResult.Value.remainingTokens;
 
-        if (operatorKind != "-" && operatorKind != "factorial")
-        {
-            return inputResult;
-        }
-
         if (operatorKind == "-")
         {
             var additiveExpression = new UnaryExpression<object ,object>(
@@ -171,16 +194,66 @@ public class Parser
             return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
                 (additiveExpression, tokens));
         }
-        
-        if (operatorKind == "factorial")
+        else if (operatorKind == "factorial")
         {
             var additiveExpression = new UnaryExpression<object ,object>(
                 inputExpression, Operations.FactorialOperation);
             return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
                 (additiveExpression, tokens));
         }
-
-        throw new InvalidDataException();
+        else if (operatorKind == "log")
+        {
+            var additiveExpression = new UnaryExpression<object ,object>(
+                inputExpression, Operations.Logarithm10Operation);
+            return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
+                (additiveExpression, tokens));
+        }
+        else if (operatorKind == "ln")
+        {
+            var additiveExpression = new UnaryExpression<object ,object>(
+                inputExpression, Operations.NaturalLogarithmOperation);
+            return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
+                (additiveExpression, tokens));
+        }
+        else if (operatorKind == "sqrt")
+        {
+            var additiveExpression = new UnaryExpression<object ,object>(
+                inputExpression, Operations.SquareRootOperation);
+            return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
+                (additiveExpression, tokens));
+        }
+        else if (operatorKind == "sin")
+        {
+            var additiveExpression = new UnaryExpression<object ,object>(
+                inputExpression, Operations.SineOperation);
+            return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
+                (additiveExpression, tokens));
+        }
+        else if (operatorKind == "cos")
+        {
+            var additiveExpression = new UnaryExpression<object ,object>(
+                inputExpression, Operations.CosineOperation);
+            return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
+                (additiveExpression, tokens));
+        }
+        else if (operatorKind == "tan")
+        {
+            var additiveExpression = new UnaryExpression<object ,object>(
+                inputExpression, Operations.TangentOperation);
+            return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
+                (additiveExpression, tokens));
+        }
+        else if (operatorKind == "ctg")
+        {
+            var additiveExpression = new UnaryExpression<object ,object>(
+                inputExpression, Operations.CotangentOperation);
+            return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
+                (additiveExpression, tokens));
+        }
+        else
+        {
+            return inputResult;
+        }
     }
 
     private Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>
@@ -241,10 +314,45 @@ public class Parser
 
         throw new InvalidDataException();
     }
+    
+    private Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>
+        ParsePossiblyParenthesisedExpression(IEnumerable<Token> tokens)
+    {
+        {
+            if (tokens.First() is OpenParen)
+            {
+                tokens = tokens.Take(1..);
+                tokens = SkipWhitespace(tokens);
+                var parseResult = ParseExpression(tokens);
+                if (parseResult.HasValue)
+                {
+                    tokens = parseResult.Value.remainingTokens;
+                    if (tokens.First() is CloseParen)
+                    {
+                        tokens = tokens.Take(1..);
+                        return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
+                            (parseResult.Value.expression, tokens));
+                    }
+                }
+            }
+        }
+
+        return ParseAtomicExpression(tokens);
+    }
 
     private Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>
-        ParseLiteralExpression(IEnumerable<Token> tokens)
+        ParseAtomicExpression(IEnumerable<Token> tokens)
     {
+        {
+            if (tokens.First() is Identifier id)
+            {
+                tokens = tokens.Take(1..);
+                var expression = new VariableExpression<object>(id.Name);
+                return Result<(Expression<object> expression, IEnumerable<Token> remainingTokens), ParserError>.Of(
+                    (expression, tokens));
+            }
+        }
+        
         {
             var result = ParseIntegralLiteralExpression(tokens);
             if (result.HasValue)

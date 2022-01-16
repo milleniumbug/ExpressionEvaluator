@@ -20,15 +20,15 @@ public class BinaryExpression<TLeft, TRight, T> : Expression<T>
     }
 
 
-    public override Result<T, EvaluationFailure> Evaluate()
+    public override Result<T, EvaluationFailure> Evaluate(EvaluationContext context)
     {
-        var leftResult = this.leftExpression.Evaluate();
+        var leftResult = this.leftExpression.Evaluate(context);
         if (leftResult.HasError)
         {
             return Result<T, EvaluationFailure>.OfError(leftResult.Error);
         }
         
-        var rightResult = this.rightExpression.Evaluate();
+        var rightResult = this.rightExpression.Evaluate(context);
         if (rightResult.HasError)
         {
             return Result<T, EvaluationFailure>.OfError(rightResult.Error);

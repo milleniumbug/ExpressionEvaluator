@@ -15,9 +15,9 @@ public class UnaryExpression<TInput, T> : Expression<T>
         this.operation = operation;
     }
 
-    public override Result<T, EvaluationFailure> Evaluate()
+    public override Result<T, EvaluationFailure> Evaluate(EvaluationContext context)
     {
-        var leftResult = this.inputExpression.Evaluate();
+        var leftResult = this.inputExpression.Evaluate(context);
         if (leftResult.HasError)
         {
             return Result<T, EvaluationFailure>.OfError(leftResult.Error);

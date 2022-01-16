@@ -36,7 +36,7 @@ public class Lexer
     
     private static Regex identifierRegex = new Regex(@"\G[A-Za-z][A-Za-z0-9]*");
 
-    private static Regex operatorRegex = new Regex(@"\G(\+|\-|\*|\/|\^|and|or|not|log|ln|xor|sin|cos|tan|ctg|factorial)");
+    private static Regex operatorRegex = new Regex(@"\G(\+|\-|\*|\/|\^|and|or|not|log|ln|xor|sin|cos|tan|ctg|factorial|sqrt|\<\-)");
     
     private static Regex whitespaceRegex = new Regex(@"\G[\s]+");
 
@@ -71,6 +71,40 @@ public class Lexer
                     {
                         reader.Advance(match.Value.Length);
                         return Result<Token, LexerError>.Of(new HexadecimalIntegralLiteral(number));                        
+                    }
+                    else
+                    {
+                        return Result<Token, LexerError>.OfError(new LexerError(this.reader.Position));
+                    }
+                }
+            }
+            
+            {
+                var match = reader.Match(octalLiteralRegex);
+                if (match.Success)
+                {
+                    var parseResult = ParseBase(match.Value.Substring(2), 8);
+                    if(parseResult != null)
+                    {
+                        reader.Advance(match.Value.Length);
+                        return Result<Token, LexerError>.Of(new OctalIntegralLiteral(parseResult.Value));                        
+                    }
+                    else
+                    {
+                        return Result<Token, LexerError>.OfError(new LexerError(this.reader.Position));
+                    }
+                }
+            }
+            
+            {
+                var match = reader.Match(binaryLiteralRegex);
+                if (match.Success)
+                {
+                    var parseResult = ParseBase(match.Value.Substring(2), 2);
+                    if(parseResult != null)
+                    {
+                        reader.Advance(match.Value.Length);
+                        return Result<Token, LexerError>.Of(new BinaryIntegralLiteral(parseResult.Value));                        
                     }
                     else
                     {
@@ -136,5 +170,43 @@ public class Lexer
         }
         
         return Result<Token, LexerError>.OfError(new LexerError(reader.Position));
+    }
+
+    private int? ParseBase(string str, int b)
+    {
+        int currentExp = 1;
+        int sum = 0;
+        foreach (var c in str.Reverse())
+        {
+            int digit;
+            if ('a' <= c && c <= 'z')
+            {
+                digit = c - 'a' + 10;
+            }
+            else if ('A' <= c && c <= 'Z')
+            {
+                digit = c - 'A' + 10;
+            }
+            else if ('0' <= c && c <= '9')
+            {
+                digit = c - '0';
+            }
+            else
+            {
+                return null;
+            }
+
+            try
+            {
+                sum = checked(sum + currentExp * digit);
+                currentExp *= b;
+            }
+            catch (OverflowException)
+            {
+                return null;
+            }
+        }
+
+        return sum;
     }
 }

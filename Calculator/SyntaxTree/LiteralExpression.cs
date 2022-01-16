@@ -10,7 +10,7 @@ public class LiteralExpression<T> : Expression<T>
         this.value = value;
     }
 
-    public override Result<T, EvaluationFailure> Evaluate()
+    public override Result<T, EvaluationFailure> Evaluate(EvaluationContext context)
     {
         return Result<T, EvaluationFailure>.Of(value);
     }
