@@ -80,7 +80,7 @@ public class Parser
             assignmentRemainingTokens = SkipWhitespace(assignmentRemainingTokens);
             if (assignmentRemainingTokens.First() is OperatorToken operatorToken && operatorToken.Kind == "<-")
             {
-                assignmentRemainingTokens = tokens.Take(1..);
+                assignmentRemainingTokens = assignmentRemainingTokens.Take(1..);
                 assignmentRemainingTokens = SkipWhitespace(assignmentRemainingTokens);
                 var result = ParseAdditiveExpression(assignmentRemainingTokens);
                 if (result.HasError)

@@ -71,25 +71,26 @@ public class ParserTests
         Assert.Equal(expectedFailureReason, evaluationResult.Error.Reason);
     }
     
-    [Fact]
-    public void VariableTest()
+    [Theory]
+    [InlineData("a <- 42", "a / 2 ", "21")]
+    [InlineData("a <- factorial 5", "a", "120")]
+    public void VariableTest(string expression, string secondExpression, string expectedEvaluationResult)
     {
         var evaluationContext = new EvaluationContext();
         var parser = new Parser();
 
         {
-            var lexer = new Lexer(new Reader("x <- 42"));
+            var lexer = new Lexer(new Reader(expression));
             var result = parser.Parse(lexer);
             Assert.True(result.HasValue);
             var evaluationResult = result.Value.Evaluate(evaluationContext);
-            Assert.Equal("42", evaluationResult.Value);
         }
         {
-            var lexer = new Lexer(new Reader("x / 2"));
+            var lexer = new Lexer(new Reader(secondExpression));
             var result = parser.Parse(lexer);
             Assert.True(result.HasValue);
             var evaluationResult = result.Value.Evaluate(evaluationContext);
-            Assert.Equal("21", evaluationResult.Value);
+            Assert.Equal(expectedEvaluationResult, evaluationResult.Value);
         }
     }
 }
